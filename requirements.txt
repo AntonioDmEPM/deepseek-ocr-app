@@ -1,12 +1,17 @@
+# Core dependencies (required for both CPU and GPU)
 flask==3.0.0
 werkzeug==3.0.1
-torch==2.6.0
 transformers==4.48.1
 pillow==10.2.0
-flash-attn==2.7.3
 
-# Note: You may need to install PyTorch with CUDA support separately:
+# PyTorch - Choose based on your setup:
+# For CPU only (recommended for machines without NVIDIA GPU):
+torch==2.6.0
+# For GPU with CUDA 11.8:
 # pip install torch==2.6.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# For vLLM support (optional, for production deployment):
+# Optional: Flash Attention (GPU only - requires CUDA and compatible GPU)
+# flash-attn==2.7.3
+
+# Optional: vLLM for production deployment (GPU only)
 # vllm==0.8.5

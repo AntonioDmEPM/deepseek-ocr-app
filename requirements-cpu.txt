@@ -1,0 +1,15 @@
+# Requirements for CPU-only setup (no NVIDIA GPU required)
+flask==3.0.0
+werkzeug==3.0.1
+torch>=2.6.0
+torchvision
+transformers==4.46.3
+tokenizers==0.20.3
+pillow>=10.3.0
+addict
+easydict
+timm
+einops
+PyMuPDF
+img2pdf
+python-dotenv

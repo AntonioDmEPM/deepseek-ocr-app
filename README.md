@@ -10,57 +10,116 @@ A simple Python web application for OCR (Optical Character Recognition) using De
   - Document to Markdown conversion
   - Free OCR
   - Figure parsing
+- **CPU and GPU support** with easy configuration
 - Adjustable resolution settings for quality/speed tradeoff
 - Clean, modern UI with drag-and-drop support
 - Copy results to clipboard
+- REST API endpoints
 
 ## Prerequisites
 
-- Python 3.12.9
-- CUDA 11.8 (for GPU acceleration)
-- NVIDIA GPU with at least 8GB VRAM (recommended)
+### Minimum Requirements (CPU Mode)
+- Python 3.9 or higher
+- 8GB RAM (16GB recommended)
+- Any modern CPU
+
+### For GPU Acceleration (Optional)
+- Python 3.9 or higher
+- CUDA 11.8
+- NVIDIA GPU with at least 8GB VRAM
+- 16GB System RAM
 
 ## Installation
 
-### 1. Clone the DeepSeek-OCR Repository
+### Option 1: CPU-Only Setup (No GPU Required)
+
+Perfect for development, testing, or systems without NVIDIA GPU.
 
 ```bash
-git clone https://github.com/deepseek-ai/DeepSeek-OCR.git
-cd DeepSeek-OCR
+# 1. Clone this repository
+git clone https://github.com/AntonioDmEPM/deepseek-ocr-app.git
+cd deepseek-ocr-app
+
+# 2. Create virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# 3. Install CPU dependencies
+pip install -r requirements-cpu.txt
+
+# 4. Copy environment configuration
+cp .env.example .env
+
+# 5. Ensure .env has CPU mode (default)
+# DEVICE_MODE=cpu
+# USE_FLASH_ATTENTION=false
+
+# 6. (Optional but recommended) Pre-download the model
+python download_model.py
 ```
 
-### 2. Create Conda Environment
+### Option 2: GPU Setup (For NVIDIA GPU Users)
+
+For faster processing with GPU acceleration.
 
 ```bash
-conda create -n deepseek-ocr python=3.12.9 -y
+# 1. Clone this repository
+git clone https://github.com/AntonioDmEPM/deepseek-ocr-app.git
+cd deepseek-ocr-app
+
+# 2. Create conda environment (recommended for GPU)
+conda create -n deepseek-ocr python=3.12 -y
 conda activate deepseek-ocr
-```
 
-### 3. Install PyTorch with CUDA Support
-
-```bash
+# 3. Install PyTorch with CUDA support
 pip install torch==2.6.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-```
 
-### 4. Install Flash Attention
+# 4. Install GPU dependencies
+pip install -r requirements-gpu.txt
 
-```bash
+# 5. Install Flash Attention (optional, for faster inference)
 pip install flash-attn==2.7.3 --no-build-isolation
+
+# 6. Configure for GPU
+cp .env.example .env
+# Edit .env and set:
+# DEVICE_MODE=gpu
+# USE_FLASH_ATTENTION=true
 ```
 
-### 5. Install Application Dependencies
+## Configuration
 
-Navigate to this project directory and install:
+The application uses environment variables for configuration. Create a `.env` file from the example:
 
 ```bash
-pip install -r requirements.txt
+cp .env.example .env
 ```
 
-### 6. Install Transformers with Trust Remote Code
+### Configuration Options
+
+Edit `.env` to customize:
 
 ```bash
-pip install transformers==4.48.1
+# Device Configuration
+DEVICE_MODE=cpu           # Options: 'cpu', 'gpu', 'auto'
+USE_FLASH_ATTENTION=false # Set to 'true' only if you have GPU + flash-attn installed
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=5000
+DEBUG=true
 ```
+
+**Device Mode Options:**
+- `cpu`: Force CPU usage (works on all systems)
+- `gpu`: Use GPU if available, fallback to CPU if not
+- `auto`: Automatically detect and use the best available device
+
+**Flash Attention:**
+- Only works with GPU mode
+- Requires `flash-attn==2.7.3` to be installed
+- Provides 2-3x faster inference on compatible GPUs
+- Set to `false` for CPU mode
 
 ## Usage
 
@@ -70,7 +129,18 @@ pip install transformers==4.48.1
 python app.py
 ```
 
-The application will start on `http://localhost:5000`
+The application will start on `http://localhost:5000` and display device information:
+
+```
+============================================================
+Loading DeepSeek-OCR model...
+Device Mode: cpu
+Target Device: cpu
+Device Name: CPU
+CUDA Available: False
+Flash Attention: False
+============================================================
+```
 
 ### Using the Web Interface
 
@@ -88,9 +158,9 @@ The application will start on `http://localhost:5000`
 5. Click "Upload and Process"
 6. Copy the results to clipboard when done
 
-### API Endpoint
+### API Endpoints
 
-You can also use the API directly:
+#### Upload and Process Document
 
 ```bash
 curl -X POST -F "file=@document.png" \
@@ -100,52 +170,113 @@ curl -X POST -F "file=@document.png" \
      http://localhost:5000/upload
 ```
 
-## Configuration
+#### Check Device Configuration
 
-You can modify the following settings in `app.py`:
+```bash
+curl http://localhost:5000/device-info
+```
 
-- `MAX_CONTENT_LENGTH`: Maximum file upload size (default: 16MB)
-- `ALLOWED_EXTENSIONS`: Supported file formats
-- `UPLOAD_FOLDER`: Directory for temporary file storage
+#### Health Check
+
+```bash
+curl http://localhost:5000/health
+```
 
 ## Performance
 
+### CPU Mode
+- Processing time: Depends on CPU performance
+- Suitable for: Testing, development, occasional use
+- Memory: ~4-8GB RAM per inference
+
+### GPU Mode
 - Processing speed: ~2,500 tokens/second on A100-40G GPU
-- The model will automatically use GPU if available, otherwise falls back to CPU
-- First request may be slower due to model loading
+- Faster with Flash Attention enabled
+- Memory: ~6-10GB VRAM depending on resolution
+- Suitable for: Production, high-volume processing
+
+**Note:** First request will be slower due to model loading (~30-60 seconds).
 
 ## Troubleshooting
 
-### CUDA Out of Memory
+### CPU Mode Issues
 
-If you encounter GPU memory errors:
+**Slow Processing:**
+- Use smaller base_size (512 or 640)
+- Reduce image dimensions before upload
+- This is normal for CPU mode - consider GPU upgrade for production
+
+**Memory Errors:**
+- Close other applications
+- Use smaller base_size
+- Ensure at least 8GB RAM available
+
+### GPU Mode Issues
+
+**CUDA Out of Memory:**
 - Use a smaller base_size (512 or 640)
 - Reduce image dimensions before upload
 - Close other GPU-intensive applications
+- Disable Flash Attention: `USE_FLASH_ATTENTION=false`
+
+**Flash Attention Installation Failed:**
+- Ensure CUDA is properly installed: `nvcc --version`
+- Try: `pip install flash-attn==2.7.3 --no-build-isolation`
+- Verify GPU compatibility with Flash Attention 2
+- Can still run without it: `USE_FLASH_ATTENTION=false`
+
+**GPU Not Detected:**
+- Verify CUDA installation: `nvidia-smi`
+- Check PyTorch CUDA: `python -c "import torch; print(torch.cuda.is_available())"`
+- Reinstall PyTorch with CUDA support
+- Fallback to CPU mode if needed
 
 ### Model Download Issues
 
-The model will be automatically downloaded from Hugging Face on first run. If you have connection issues:
-- Set up Hugging Face cache: `export HF_HOME=/path/to/cache`
-- Use a mirror if needed: `export HF_ENDPOINT=https://hf-mirror.com`
+The model (~4GB) downloads automatically from Hugging Face on first run:
 
-### Flash Attention Installation Failed
-
-If flash-attn fails to install:
-- Ensure CUDA is properly installed: `nvcc --version`
-- Try installing with: `pip install flash-attn==2.7.3 --no-build-isolation`
-- Verify your GPU is compatible with Flash Attention 2
+- Set custom cache: `export HF_HOME=/path/to/cache`
+- Use mirror if needed: `export HF_ENDPOINT=https://hf-mirror.com`
+- Check disk space (need ~10GB free)
+- Check internet connection
 
 ## Project Structure
 
 ```
 .
 ├── app.py                 # Main Flask application
+├── config.py              # Configuration management
 ├── templates/
 │   └── index.html        # Web interface
 ├── uploads/              # Temporary upload directory (auto-created)
-├── requirements.txt      # Python dependencies
+├── requirements.txt      # Base dependencies
+├── requirements-cpu.txt  # CPU-only dependencies
+├── requirements-gpu.txt  # GPU dependencies
+├── .env.example          # Environment configuration template
+├── .env                  # Your configuration (create from .env.example)
+├── .gitignore           # Git ignore rules
 └── README.md            # This file
+```
+
+## Switching Between CPU and GPU
+
+You can easily switch modes by editing `.env`:
+
+**For CPU:**
+```bash
+DEVICE_MODE=cpu
+USE_FLASH_ATTENTION=false
+```
+
+**For GPU:**
+```bash
+DEVICE_MODE=gpu
+USE_FLASH_ATTENTION=true  # Only if flash-attn is installed
+```
+
+Then restart the application:
+```bash
+python app.py
 ```
 
 ## License

@@ -1,0 +1,9 @@
+# Requirements for GPU setup (requires NVIDIA GPU with CUDA 11.8)
+flask==3.0.0
+werkzeug==3.0.1
+transformers==4.48.1
+pillow==10.2.0
+flash-attn==2.7.3
+
+# Note: Install PyTorch with CUDA support using:
+# pip install torch==2.6.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
